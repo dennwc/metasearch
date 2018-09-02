@@ -15,6 +15,15 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+type ErrHTTPStatus struct {
+	Code   int
+	Status string
+}
+
+func (e *ErrHTTPStatus) Error() string {
+	return fmt.Sprintf("status: %v", e.Status)
+}
+
 var debugHTTP = os.Getenv("METAS_DEBUG_HTTP") == "true"
 
 func NewHTTPClient(base string) HTTPClient {
@@ -96,7 +105,7 @@ func (c *HTTPClient) doEnc(ctx context.Context, req *http.Request, accept string
 
 	if resp.StatusCode/100 != 2 {
 		resp.Body.Close()
-		return nil, fmt.Errorf("status: %v", resp.Status)
+		return nil, &ErrHTTPStatus{Status: resp.Status, Code: resp.StatusCode}
 	}
 	return resp, nil
 }

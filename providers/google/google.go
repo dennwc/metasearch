@@ -2,6 +2,7 @@ package google
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,9 +14,13 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/nwca/metasearch/providers"
+	"github.com/nwca/metasearch/search"
 )
 
+var _ search.Service = (*Service)(nil)
+
 const (
+	perPage         = 10
 	defaultHostname = "www.google.com"
 	defaultCountry  = "US"
 	defaultLanguage = "en"
@@ -92,15 +97,104 @@ type Service struct {
 
 	lang struct {
 		sync.RWMutex
-		list []Language
+		list []search.Language
 	}
 }
 
+func (s *Service) Search(ctx context.Context, req search.Request) search.ResultIterator {
+	r := SearchReq{
+		Query:    req.Query,
+		Language: req.Lang.Country().String(),
+		Country:  req.Country.String(),
+		Offset:   0,
+	}
+	return &searchIter{s: s, cur: r}
+}
+
+func (s *Service) ContinueSearch(ctx context.Context, tok search.Token) search.ResultIterator {
+	var t token
+	if err := json.Unmarshal([]byte(tok), &t); err != nil {
+		return &searchIter{err: err}
+	}
+	resp, err := s.SearchRaw(ctx, t.Cur)
+	return &searchIter{s: s, cur: t.Cur, page: resp.Results, i: t.Off, err: err}
+}
+
+type searchIter struct {
+	s   *Service
+	cur SearchReq
+
+	page []Result
+	i    int
+	err  error
+}
+
+func (it *searchIter) Next(ctx context.Context) bool {
+	if it.err != nil || it.s == nil {
+		return false
+	}
+	if it.i+1 < len(it.page) {
+		it.i++
+		return true
+	}
+	it.cur.Offset += len(it.page)
+	it.page = nil
+	resp, err := it.s.SearchRaw(ctx, it.cur)
+	if err != nil {
+		it.err = err
+		return false
+	}
+	it.page = resp.Results
+	it.i = 0
+	return len(it.page) > 0
+}
+
+func (it *searchIter) Close() error {
+	it.page = nil
+	return nil
+}
+
+func (it *searchIter) Err() error {
+	return it.err
+}
+
+func (it *searchIter) Result() search.Result {
+	if it.i >= len(it.page) {
+		return search.Result{}
+	}
+	r := it.page[it.i]
+	u, err := url.Parse(r.URL)
+	if err != nil {
+		it.err = err
+		return search.Result{}
+	}
+	return search.Result{
+		URL: *u, Title: r.Title, Text: r.Content,
+	}
+}
+
+func (it *searchIter) Token() search.Token {
+	data, err := json.Marshal(token{
+		Cur: it.cur,
+		Off: it.i,
+	})
+	if err != nil {
+		it.err = err
+		return nil
+	}
+	return search.Token(data)
+}
+
+type token struct {
+	Cur SearchReq `json:"req"`
+	Off int       `json:"off,omitempty"`
+}
+
 type SearchReq struct {
-	Query    string
-	Offset   int
-	Language string
-	Country  string
+	Query    string `json:"q"`
+	Offset   int    `json:"off"`
+	Language string `json:"lang"`
+	Country  string `json:"country"`
 }
 
 type Result struct {
@@ -191,17 +285,12 @@ func (s *Service) SearchRaw(ctx context.Context, r SearchReq) (*SearchResp, erro
 	return out, nil
 }
 
-type Language struct {
-	Code string
-	Name string
-}
-
-func (s *Service) fetchLanguages(ctx context.Context) ([]Language, error) {
+func (s *Service) fetchLanguages(ctx context.Context) ([]search.Language, error) {
 	doc, err := s.GetHTML(ctx, languagesURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	var out []Language
+	var out []search.Language
 	doc.Find(`input[name="lang"]`).Each(func(_ int, sel *goquery.Selection) {
 		code := sel.AttrOr("id", "")
 		if code == "" {
@@ -212,33 +301,39 @@ func (s *Service) fetchLanguages(ctx context.Context) ([]Language, error) {
 		if title == "" {
 			return
 		}
-		out = append(out, Language{
-			Code: code, Name: title,
+		l, er := search.ParseLangCode(code)
+		if er != nil {
+			err = er
+			return
+		}
+		out = append(out, search.Language{
+			Code: l, Name: title,
 		})
 	})
-	if len(out) == 0 {
-
+	if err != nil {
+		return nil, err
+	} else if len(out) == 0 {
 		return nil, fmt.Errorf("cannot parse languages list")
 	}
 	return out, nil
 }
 
-func (s *Service) Languages(ctx context.Context) ([]Language, error) {
+func (s *Service) Languages(ctx context.Context) ([]search.Language, error) {
 	s.lang.RLock()
 	list := s.lang.list
 	s.lang.RUnlock()
 	if list != nil {
-		return append([]Language{}, list...), nil
+		return append([]search.Language{}, list...), nil
 	}
 	s.lang.Lock()
 	defer s.lang.Unlock()
 	if list = s.lang.list; list != nil {
-		return append([]Language{}, list...), nil
+		return append([]search.Language{}, list...), nil
 	}
 	list, err := s.fetchLanguages(ctx)
 	if err != nil {
 		return nil, err
 	}
 	s.lang.list = list
-	return append([]Language{}, list...), nil
+	return append([]search.Language{}, list...), nil
 }

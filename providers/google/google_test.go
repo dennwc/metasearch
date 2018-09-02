@@ -2,6 +2,7 @@ package google
 
 import (
 	"context"
+	"github.com/nwca/metasearch/search"
 	"strings"
 	"testing"
 
@@ -28,6 +29,7 @@ func TestSearch(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("%d %q", len(resp.Results), resp)
 	require.True(t, len(resp.Results) > 2)
+
 	r := resp.Results[0]
 	require.True(t, r.URL != "" && r.Title != "" && r.Content != "")
 	require.True(t, strings.HasPrefix(r.URL, "http"))
@@ -37,7 +39,17 @@ func TestSearch(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("%d %q", len(resp.Results), resp)
 	require.True(t, len(resp.Results) > 2)
+
 	r2 := resp.Results[0]
 	require.True(t, r2.URL != "" && r2.Title != "" && r2.Content != "")
 	require.True(t, r.URL != r2.URL)
+
+	it := s.Search(ctx, search.Request{Query: req.Query})
+	defer it.Close()
+	var got []search.Result
+	for i := 0; i < perPage*2 && it.Next(ctx); i++ {
+		got = append(got, it.Result())
+	}
+	require.NoError(t, it.Err())
+	require.True(t, len(got) == perPage*2)
 }
