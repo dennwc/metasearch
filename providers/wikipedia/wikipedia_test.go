@@ -63,10 +63,17 @@ The solar wind, a stream of charged particles flowing outwards from the Sun, cre
 	}
 	require.NoError(t, err)
 	require.Equal(t, []search.Result{
-		{
-			URL:   mustURL("https://en.wikipedia.org/wiki/Solar_System"),
-			Title: "Solar System",
-			Text:  extract,
+		&search.EntityResult{
+			LinkResult: search.LinkResult{
+				URL:   mustURL("https://en.wikipedia.org/wiki/Solar_System"),
+				Title: "Solar System",
+				Desc:  extract,
+			},
+			Image: &search.Image{
+				URL:    mustURL("https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Planets2013.svg/300px-Planets2013.svg.png"),
+				Width:  300,
+				Height: 177,
+			},
 		},
 	}, got)
 }

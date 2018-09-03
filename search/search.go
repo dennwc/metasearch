@@ -26,10 +26,10 @@ type ResultIterator interface {
 	Token() Token
 }
 
-type Result struct {
-	URL   url.URL
-	Title string
-	Text  string
+type Result interface {
+	GetURL() url.URL
+	GetTitle() string
+	GetDesc() string
 }
 
 type Token []byte

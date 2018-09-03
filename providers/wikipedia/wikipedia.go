@@ -37,8 +37,7 @@ func (s *Service) Search(ctx context.Context, req search.Request) search.ResultI
 		Titles:   req.Query,
 		Prop: []Property{
 			PropExtracts,
-			// TODO: support images in search results
-			// PropPageImages
+			PropPageImages,
 		},
 	}
 	if r.Language == "" {
@@ -97,7 +96,7 @@ func (it *searchIter) Err() error {
 
 func (it *searchIter) Result() search.Result {
 	if it.i >= len(it.page) {
-		return search.Result{}
+		return nil
 	}
 	r := it.page[it.i]
 	id := strings.Replace(r.Title, " ", "_", -1)
@@ -105,13 +104,26 @@ func (it *searchIter) Result() search.Result {
 	u, err := url.Parse(surl)
 	if err != nil {
 		it.err = err
-		return search.Result{}
+		return nil
 	}
-	return search.Result{
-		URL:   *u,
-		Title: r.Title,
-		Text:  r.Extract,
+	res := &search.EntityResult{
+		LinkResult: search.LinkResult{
+			URL:   *u,
+			Title: r.Title,
+			Desc:  r.Extract,
+		},
 	}
+	if t := r.Thumbnail; t != nil && t.Source != "" {
+		u, err := url.Parse(t.Source)
+		if err != nil {
+			it.err = err
+			return nil
+		}
+		res.Image = &search.Image{
+			URL: *u, Width: t.Width, Height: t.Height,
+		}
+	}
+	return res
 }
 
 func (it *searchIter) Token() search.Token {

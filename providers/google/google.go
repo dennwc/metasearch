@@ -160,16 +160,16 @@ func (it *searchIter) Err() error {
 
 func (it *searchIter) Result() search.Result {
 	if it.i >= len(it.page) {
-		return search.Result{}
+		return nil
 	}
 	r := it.page[it.i]
 	u, err := url.Parse(r.URL)
 	if err != nil {
 		it.err = err
-		return search.Result{}
+		return nil
 	}
-	return search.Result{
-		URL: *u, Title: r.Title, Text: r.Content,
+	return &search.LinkResult{
+		URL: *u, Title: r.Title, Desc: r.Content,
 	}
 }
 
