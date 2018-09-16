@@ -3,7 +3,7 @@ package autocomplete
 import (
 	"context"
 
-	"github.com/nwca/metasearch/base"
+	"github.com/dennwc/metasearch/base"
 )
 
 type Service interface {

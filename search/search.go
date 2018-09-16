@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/nwca/metasearch/base"
+	"github.com/dennwc/metasearch/base"
 )
 
 type Searcher interface {

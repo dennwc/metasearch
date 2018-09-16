@@ -2,7 +2,7 @@ package google
 
 import (
 	"context"
-	"github.com/nwca/metasearch/search"
+	"github.com/dennwc/metasearch/search"
 	"strings"
 	"testing"
 

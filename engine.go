@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/nwca/metasearch/autocomplete"
-	"github.com/nwca/metasearch/base"
-	"github.com/nwca/metasearch/providers"
-	"github.com/nwca/metasearch/search"
+	"github.com/dennwc/metasearch/autocomplete"
+	"github.com/dennwc/metasearch/base"
+	"github.com/dennwc/metasearch/providers"
+	"github.com/dennwc/metasearch/search"
 )
 
 var (

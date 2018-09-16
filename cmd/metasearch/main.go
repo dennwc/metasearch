@@ -9,9 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/nwca/metasearch"
-	_ "github.com/nwca/metasearch/providers/all"
-	"github.com/nwca/metasearch/search"
+	"github.com/dennwc/metasearch"
+	_ "github.com/dennwc/metasearch/providers/all"
+	"github.com/dennwc/metasearch/search"
 )
 
 var Root = &cobra.Command{
@@ -45,6 +45,9 @@ func init() {
 			}
 			tok := it.Token()
 			fmt.Println("\n\ntoken:", hex.EncodeToString([]byte(tok)))
+			if err := it.Err(); err != nil {
+				return err
+			}
 			return nil
 		},
 	}

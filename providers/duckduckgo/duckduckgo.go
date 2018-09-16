@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nwca/metasearch/autocomplete"
+	"github.com/dennwc/metasearch/autocomplete"
 	"io"
 	"io/ioutil"
 	"net/url"
@@ -15,8 +15,8 @@ import (
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/nwca/metasearch/providers"
-	"github.com/nwca/metasearch/search"
+	"github.com/dennwc/metasearch/providers"
+	"github.com/dennwc/metasearch/search"
 )
 
 const (

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/nwca/metasearch/providers"
-	"github.com/nwca/metasearch/search"
+	"github.com/dennwc/metasearch/providers"
+	"github.com/dennwc/metasearch/search"
 )
 
 const (

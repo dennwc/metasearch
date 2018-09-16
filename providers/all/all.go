@@ -1,7 +1,7 @@
 package all
 
 import (
-	_ "github.com/nwca/metasearch/providers/duckduckgo"
-	_ "github.com/nwca/metasearch/providers/google"
-	_ "github.com/nwca/metasearch/providers/wikipedia"
+	_ "github.com/dennwc/metasearch/providers/duckduckgo"
+	_ "github.com/dennwc/metasearch/providers/google"
+	_ "github.com/dennwc/metasearch/providers/wikipedia"
 )
