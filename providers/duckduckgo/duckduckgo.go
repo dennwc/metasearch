@@ -245,6 +245,8 @@ func (s *Service) SearchRaw(ctx context.Context, r SearchReq) (*SearchResp, erro
 			u, _ := url.ParseQuery(r.URL[i:])
 			if v := u.Get("uddg"); v != "" {
 				r.URL = v
+			} else if v := u.Get("u3"); v != "" {
+				r.URL = v
 			} else {
 				r.URL = baseURL + r.URL
 			}
