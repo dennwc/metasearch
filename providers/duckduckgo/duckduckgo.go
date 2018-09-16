@@ -19,9 +19,16 @@ import (
 )
 
 const (
-	baseURL = "https://duckduckgo.com"
-	perPage = 30
+	provName = "duckduckgo"
+	baseURL  = "https://duckduckgo.com"
+	perPage  = 30
 )
+
+func init() {
+	search.RegisterService(provName, func(ctx context.Context) (search.Service, error) {
+		return New(), nil
+	})
+}
 
 var _ search.Service = (*Service)(nil)
 
@@ -38,6 +45,10 @@ type Service struct {
 		sync.RWMutex
 		list []Region
 	}
+}
+
+func (*Service) ID() string {
+	return provName
 }
 
 func (s *Service) Languages(ctx context.Context) ([]search.Language, error) {

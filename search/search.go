@@ -7,11 +7,16 @@ import (
 	"github.com/nwca/metasearch/base"
 )
 
-type Service interface {
-	Languages(ctx context.Context) ([]Language, error)
-
+type Searcher interface {
 	Search(ctx context.Context, req Request) ResultIterator
 	ContinueSearch(ctx context.Context, tok Token) ResultIterator
+}
+
+type Service interface {
+	ID() string
+	Languages(ctx context.Context) ([]Language, error)
+
+	Searcher
 }
 
 type Request struct {
@@ -27,7 +32,7 @@ type ResultIterator interface {
 }
 
 type Result interface {
-	GetURL() url.URL
+	GetURL() *url.URL
 	GetTitle() string
 	GetDesc() string
 }

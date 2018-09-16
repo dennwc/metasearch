@@ -10,8 +10,9 @@ type LinkResult struct {
 	Desc  string
 }
 
-func (r *LinkResult) GetURL() url.URL {
-	return r.URL
+func (r *LinkResult) GetURL() *url.URL {
+	u := r.URL
+	return &u
 }
 
 func (r *LinkResult) GetTitle() string {
@@ -44,8 +45,9 @@ type Image struct {
 	Height int
 }
 
-func (r *Image) GetURL() url.URL {
-	return r.URL
+func (r *Image) GetURL() *url.URL {
+	u := r.URL
+	return &u
 }
 
 type VideoResult struct {

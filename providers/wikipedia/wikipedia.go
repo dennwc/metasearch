@@ -11,6 +11,16 @@ import (
 	"github.com/nwca/metasearch/search"
 )
 
+const (
+	provName = "wikipedia"
+)
+
+func init() {
+	search.RegisterService(provName, func(ctx context.Context) (search.Service, error) {
+		return New(), nil
+	})
+}
+
 var _ search.Service = (*Service)(nil)
 
 func New() *Service {
@@ -25,6 +35,10 @@ var (
 
 type Service struct {
 	providers.HTTPClient
+}
+
+func (*Service) ID() string {
+	return provName
 }
 
 func (s *Service) Languages(ctx context.Context) ([]search.Language, error) {

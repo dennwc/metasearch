@@ -20,6 +20,7 @@ import (
 var _ search.Service = (*Service)(nil)
 
 const (
+	provName        = "google"
 	perPage         = 10
 	defaultHostname = "www.google.com"
 	defaultCountry  = "US"
@@ -27,6 +28,12 @@ const (
 	languagesURL    = "https://" + defaultHostname + "/preferences?#languages"
 	searchPath      = "/search"
 )
+
+func init() {
+	search.RegisterService(provName, func(ctx context.Context) (search.Service, error) {
+		return New(), nil
+	})
+}
 
 var (
 	countryHostname = map[string]string{
@@ -99,6 +106,10 @@ type Service struct {
 		sync.RWMutex
 		list []search.Language
 	}
+}
+
+func (*Service) ID() string {
+	return provName
 }
 
 func (s *Service) Search(ctx context.Context, req search.Request) search.ResultIterator {
