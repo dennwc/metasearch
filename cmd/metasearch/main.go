@@ -21,7 +21,7 @@ var Root = &cobra.Command{
 
 func init() {
 	cmdQuery := &cobra.Command{
-		Use:     "query",
+		Use:     "query [search query]",
 		Aliases: []string{"qu", "q"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			qu := strings.Join(args, " ")
@@ -37,7 +37,8 @@ func init() {
 			})
 			defer it.Close()
 			for i := 0; i < limit && it.Next(ctx); i++ {
-				fmt.Printf("%v\n\n", it.Result())
+				r := it.Result()
+				fmt.Printf("%s - %q (%T)\n\n", r.GetURL(), r.GetTitle(), r)
 			}
 			if err := it.Err(); err != nil {
 				return err
@@ -49,6 +50,28 @@ func init() {
 	}
 	cmdQuery.Flags().IntP("limit", "n", 10, "limit the number of results")
 	Root.AddCommand(cmdQuery)
+
+	cmdAutoc := &cobra.Command{
+		Use:     "complete [search query]",
+		Aliases: []string{"ac"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			qu := strings.Join(args, " ")
+			ctx := context.Background()
+			s, err := metasearch.NewEngine(ctx)
+			if err != nil {
+				return err
+			}
+			list, err := s.AutoComplete(ctx, qu)
+			if err != nil {
+				return err
+			}
+			for _, r := range list {
+				fmt.Println(r)
+			}
+			return nil
+		},
+	}
+	Root.AddCommand(cmdAutoc)
 }
 
 func main() {

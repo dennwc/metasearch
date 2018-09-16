@@ -16,7 +16,7 @@ const (
 )
 
 func init() {
-	search.RegisterService(provName, func(ctx context.Context) (search.Service, error) {
+	providers.Register(provName, func(ctx context.Context) (providers.Provider, error) {
 		return New(), nil
 	})
 }

@@ -6,45 +6,86 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/nwca/metasearch/autocomplete"
+	"github.com/nwca/metasearch/base"
+	"github.com/nwca/metasearch/providers"
 	"github.com/nwca/metasearch/search"
 )
 
-var _ search.Searcher = (*Engine)(nil)
+var (
+	_ search.Searcher      = (*Engine)(nil)
+	_ autocomplete.Service = (*Engine)(nil)
+)
 
-func NewEngine(ctx context.Context, provs ...search.Service) (*Engine, error) {
-	if len(provs) == 0 {
-		provs = nil
-		for _, fnc := range search.ListServices() {
+func NewEngine(ctx context.Context, provs ...base.Provider) (*Engine, error) {
+	s := &Engine{
+		provs: provs,
+		byID:  make(map[string]base.Provider),
+	}
+	if len(s.provs) == 0 {
+		s.provs = nil
+		for _, fnc := range providers.List() {
 			p, err := fnc(ctx)
 			if err != nil {
 				return nil, err
 			}
-			provs = append(provs, p)
+			s.provs = append(s.provs, p)
 		}
 	}
-	if len(provs) == 0 {
+	if len(s.provs) == 0 {
 		return nil, fmt.Errorf("none providers were selected")
 	}
 	// TODO: request supported languages, convert language from the request to the right one for this provider
-	s := &Engine{
-		provs: provs,
-		byID:  make(map[string]search.Service),
-	}
-	for _, p := range provs {
+	for _, p := range s.provs {
 		s.byID[p.ID()] = p
+
+		if pr, ok := p.(search.Service); ok {
+			s.search = append(s.search, pr)
+		}
+		if pr, ok := p.(autocomplete.Service); ok {
+			s.autoc = append(s.autoc, pr)
+		}
 	}
 	return s, nil
 }
 
 type Engine struct {
-	provs []search.Service
-	byID  map[string]search.Service
+	provs []base.Provider
+	byID  map[string]base.Provider
+
+	search []search.Service
+	autoc  []autocomplete.Service
+}
+
+func (s *Engine) ID() string {
+	return "meta"
+}
+
+func (s *Engine) AutoComplete(ctx context.Context, text string) ([]string, error) {
+	var results []string
+	seen := make(map[string]struct{})
+	var last error
+	for _, p := range s.autoc {
+		arr, err := p.AutoComplete(ctx, text)
+		if err != nil {
+			last = err
+			continue
+		}
+		for _, r := range arr {
+			if _, ok := seen[r]; ok {
+				continue
+			}
+			seen[r] = struct{}{}
+			results = append(results, r)
+		}
+	}
+	return results, last
 }
 
 func (s *Engine) Search(ctx context.Context, req search.Request) search.ResultIterator {
-	its := make([]search.ResultIterator, 0, len(s.provs))
-	ids := make([]string, 0, len(s.provs))
-	for _, p := range s.provs {
+	its := make([]search.ResultIterator, 0, len(s.search))
+	ids := make([]string, 0, len(s.search))
+	for _, p := range s.search {
 		it := p.Search(ctx, req)
 		if err := it.Err(); err != nil {
 			it.Close()
@@ -69,7 +110,12 @@ func (s *Engine) ContinueSearch(ctx context.Context, tok search.Token) search.Re
 		}
 	}
 	for _, pt := range t.Provs {
-		p, ok := s.byID[pt.ID]
+		pr, ok := s.byID[pt.ID]
+		if !ok {
+			discard()
+			return &multiIterator{err: fmt.Errorf("provider %q is not defined", pt.ID)}
+		}
+		p, ok := pr.(search.Service)
 		if !ok {
 			discard()
 			return &multiIterator{err: fmt.Errorf("provider %q is not defined", pt.ID)}

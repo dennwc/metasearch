@@ -13,7 +13,7 @@ type Searcher interface {
 }
 
 type Service interface {
-	ID() string
+	base.Provider
 	Languages(ctx context.Context) ([]Language, error)
 
 	Searcher

@@ -58,3 +58,15 @@ func TestSearchRaw(t *testing.T) {
 	require.NoError(t, it.Err())
 	require.True(t, len(got) >= perPage*2 && len(got) <= (perPage+1)*2)
 }
+
+func TestAutoComplete(t *testing.T) {
+	s := New()
+	list, err := s.AutoComplete(context.TODO(), "sola")
+	require.NoError(t, err)
+	require.NotEmpty(t, list)
+
+	t.Logf("%d results: %q", len(list), list)
+	for _, v := range list {
+		require.True(t, v != "", "empty item")
+	}
+}

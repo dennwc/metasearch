@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nwca/metasearch/autocomplete"
 	"io"
 	"io/ioutil"
 	"net/url"
@@ -19,22 +20,26 @@ import (
 )
 
 const (
-	provName = "duckduckgo"
-	baseURL  = "https://duckduckgo.com"
-	perPage  = 30
+	provName    = "duckduckgo"
+	baseURL     = "https://duckduckgo.com"
+	baseURLAuto = "https://ac.duckduckgo.com"
+	perPage     = 30
 )
 
 func init() {
-	search.RegisterService(provName, func(ctx context.Context) (search.Service, error) {
+	providers.Register(provName, func(ctx context.Context) (providers.Provider, error) {
 		return New(), nil
 	})
 }
 
-var _ search.Service = (*Service)(nil)
+var (
+	_ autocomplete.Service = (*Service)(nil)
+	_ search.Service       = (*Service)(nil)
+)
 
 func New() *Service {
 	return &Service{
-		HTTPClient: providers.NewHTTPClient(baseURL),
+		HTTPClient: providers.NewHTTPClient(""),
 	}
 }
 
@@ -49,6 +54,24 @@ type Service struct {
 
 func (*Service) ID() string {
 	return provName
+}
+
+func (s *Service) AutoComplete(ctx context.Context, text string) ([]string, error) {
+	params := make(url.Values)
+	params.Set("q", text)
+	params.Set("type", "json")
+
+	var list []struct {
+		Text string `json:"phrase"`
+	}
+	if err := s.GetJSON(ctx, baseURLAuto+"/ac", params, &list); err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(list))
+	for _, v := range list {
+		out = append(out, v.Text)
+	}
+	return out, nil
 }
 
 func (s *Service) Languages(ctx context.Context) ([]search.Language, error) {
@@ -200,7 +223,7 @@ func (s *Service) SearchRaw(ctx context.Context, r SearchReq) (*SearchResp, erro
 	params.Set("s", strconv.Itoa(r.Offset))
 	params.Set("dc", strconv.Itoa(r.Offset))
 
-	doc, err := s.GetHTML(ctx, "/html", params)
+	doc, err := s.GetHTML(ctx, baseURL+"/html", params)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +265,7 @@ type Region struct {
 }
 
 func (s *Service) fetchRegions(ctx context.Context) ([]Region, error) {
-	resp, err := s.Get(ctx, "/util/u172.js", nil)
+	resp, err := s.Get(ctx, baseURL+"/util/u172.js", nil)
 	if err != nil {
 		return nil, err
 	}
