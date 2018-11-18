@@ -31,6 +31,20 @@ type ResultIterator interface {
 	Token() Token
 }
 
+var _ ResultIterator = Empty{}
+
+type Empty struct {
+	base.Empty
+}
+
+func (Empty) Result() Result {
+	return nil
+}
+
+func (Empty) Token() Token {
+	return nil
+}
+
 type Result interface {
 	GetURL() *url.URL
 	GetTitle() string
