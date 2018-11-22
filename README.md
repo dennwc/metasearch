@@ -1,4 +1,8 @@
-# Metasearch engine in Go
+# Meta search engine in Go
+
+## Status
+
+The package is in Alpha state, APIs may change.
 
 ## Supported providers
 
@@ -11,3 +15,7 @@
 - [DuckDuckGo](https://duckduckgo.com/)
 - [Google](https://google.com/)
 - [Wikipedia](https://www.wikipedia.org/)
+
+## License
+
+MIT
