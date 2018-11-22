@@ -8,12 +8,20 @@ type Iterator interface {
 	Err() error
 }
 
-var _ Iterator = Empty{}
+var _ PagedIterator = Empty{}
 
 type Empty struct{}
 
 func (Empty) Next(ctx context.Context) bool {
 	return false
+}
+
+func (Empty) NextPage(ctx context.Context) bool {
+	return false
+}
+
+func (Empty) Buffered() int {
+	return 0
 }
 
 func (Empty) Close() error {
@@ -22,4 +30,10 @@ func (Empty) Close() error {
 
 func (Empty) Err() error {
 	return nil
+}
+
+type PagedIterator interface {
+	Iterator
+	NextPage(ctx context.Context) bool
+	Buffered() int
 }

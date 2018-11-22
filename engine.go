@@ -139,7 +139,44 @@ type multiIterator struct {
 	err error
 }
 
+func (it *multiIterator) closeIter(i int) error {
+	err := it.its[i].Close()
+	it.its = append(it.its[:i], it.its[i+1:]...)
+	it.ids = append(it.ids[:i], it.ids[i+1:]...)
+	return err
+}
+
+func (it *multiIterator) NextPage(ctx context.Context) bool {
+	it.i = 0
+	for i := 0; i < len(it.its); i++ {
+		cur := it.its[i]
+		if !cur.NextPage(ctx) {
+			if err := cur.Err(); err != nil {
+				log.Println(err)
+			}
+			it.closeIter(i)
+		}
+	}
+	return len(it.its) != 0
+}
+
+func (it *multiIterator) Buffered() int {
+	total := 0
+	for _, it := range it.its {
+		total += it.Buffered()
+	}
+	return total
+}
+
 func (it *multiIterator) Next(ctx context.Context) bool {
+	if len(it.its) == 0 {
+		return false
+	}
+	if it.Buffered() == 0 {
+		if !it.NextPage(ctx) {
+			return false
+		}
+	}
 	for it.err == nil && len(it.its) > 0 {
 		it.i++
 		if it.i >= len(it.its) {
@@ -147,15 +184,16 @@ func (it *multiIterator) Next(ctx context.Context) bool {
 		}
 		i := it.i
 		cur := it.its[i]
+		if cur.Buffered() == 0 {
+			continue
+		}
 		if cur.Next(ctx) {
 			return true
 		}
 		if err := cur.Err(); err != nil {
 			log.Println(err)
 		}
-		cur.Close()
-		it.its = append(it.its[:i], it.its[i+1:]...)
-		it.ids = append(it.ids[:i], it.ids[i+1:]...)
+		it.closeIter(i)
 		it.i--
 	}
 	return false

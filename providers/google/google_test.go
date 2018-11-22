@@ -2,23 +2,14 @@ package google
 
 import (
 	"context"
-	"github.com/dennwc/metasearch/search"
 	"strings"
 	"testing"
 
+	"github.com/dennwc/metasearch/search"
 	"github.com/stretchr/testify/require"
 )
 
-func TestLanguages(t *testing.T) {
-	s := New()
-	ctx := context.Background()
-	list, err := s.Languages(ctx)
-	require.NoError(t, err)
-	t.Logf("%d %q", len(list), list)
-	require.True(t, len(list) >= 140)
-}
-
-func TestSearch(t *testing.T) {
+func TestSearchRaw(t *testing.T) {
 	s := New()
 	ctx := context.Background()
 
@@ -43,8 +34,13 @@ func TestSearch(t *testing.T) {
 	r2 := resp.Results[0]
 	require.True(t, r2.URL != "" && r2.Title != "" && r2.Content != "")
 	require.True(t, r.URL != r2.URL)
+}
 
-	it := s.Search(ctx, search.Request{Query: req.Query})
+func TestSearch(t *testing.T) {
+	s := New()
+	ctx := context.Background()
+
+	it := s.Search(ctx, search.Request{Query: "solar"})
 	defer it.Close()
 	var got []search.Result
 	for i := 0; i < perPage*2 && it.Next(ctx); i++ {

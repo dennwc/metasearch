@@ -2,26 +2,12 @@ package duckduckgo
 
 import (
 	"context"
-	"github.com/dennwc/metasearch/search"
 	"strings"
 	"testing"
 
+	"github.com/dennwc/metasearch/search"
 	"github.com/stretchr/testify/require"
 )
-
-func TestRegions(t *testing.T) {
-	s := New()
-	ctx := context.Background()
-	list, err := s.Regions(ctx)
-	require.NoError(t, err)
-	t.Logf("%d %q", len(list), list)
-	require.True(t, len(list) >= 65)
-
-	langs, err := s.Languages(ctx)
-	require.NoError(t, err)
-	t.Logf("%d %q", len(langs), langs)
-	require.True(t, len(langs) == len(list))
-}
 
 func TestSearchRaw(t *testing.T) {
 	s := New()
@@ -30,7 +16,7 @@ func TestSearchRaw(t *testing.T) {
 	req := SearchReq{
 		Query: "solar",
 	}
-	resp, err := s.SearchRaw(ctx, req)
+	resp, next, err := s.search(ctx, s.newSearch(req))
 	require.NoError(t, err)
 	t.Logf("%d %q", len(resp.Results), resp)
 	require.True(t, len(resp.Results) > 2)
@@ -39,34 +25,52 @@ func TestSearchRaw(t *testing.T) {
 	require.True(t, r.URL != "" && r.Title != "" && r.Content != "")
 	require.True(t, strings.HasPrefix(r.URL, "http"))
 
-	req.Offset += len(resp.Results)
-	resp, err = s.SearchRaw(ctx, req)
-	require.NoError(t, err)
-	t.Logf("%d %q", len(resp.Results), resp)
-	require.True(t, len(resp.Results) > 2)
-
-	r2 := resp.Results[0]
-	require.True(t, r2.URL != "" && r2.Title != "" && r2.Content != "")
-	require.True(t, r.URL != r2.URL)
-
-	it := s.Search(ctx, search.Request{Query: req.Query})
-	defer it.Close()
-	var got []search.Result
-	for i := 0; i < perPage*2 && it.Next(ctx); i++ {
-		got = append(got, it.Result())
-	}
-	require.NoError(t, it.Err())
-	require.True(t, len(got) >= perPage*2 && len(got) <= (perPage+1)*2)
+	require.True(t, len(next) != 0)
 }
 
-func TestAutoComplete(t *testing.T) {
+func TestSearch(t *testing.T) {
 	s := New()
-	list, err := s.AutoComplete(context.TODO(), "sola")
-	require.NoError(t, err)
-	require.NotEmpty(t, list)
+	ctx := context.Background()
 
-	t.Logf("%d results: %q", len(list), list)
-	for _, v := range list {
-		require.True(t, v != "", "empty item")
+	it := s.Search(ctx, search.Request{Query: "solar"})
+	defer it.Close()
+
+	const perPage = 30
+
+	seen := make(map[string][2]int)
+	dups := 0
+	for i := 0; i < 2; i++ {
+		if !it.NextPage(ctx) {
+			require.Fail(t, "expected more pages")
+		}
+		require.NoError(t, it.Err())
+
+		n := it.Buffered()
+		require.True(t, n >= perPage)
+		if n > perPage {
+			t.Log("unexpectedly large page:", n)
+		}
+
+		for j := 0; j < n; j++ {
+			if !it.Next(ctx) {
+				require.Fail(t, "expected more results")
+			}
+			require.Equal(t, n-(j+1), it.Buffered())
+
+			r := it.Result()
+			require.NotNil(t, r)
+
+			ind := [2]int{i, j}
+			url := r.GetURL().String()
+			old, ok := seen[url]
+			if ok {
+				dups++
+				t.Logf("already seen this url: %v vs %v (%q)", old, ind, url)
+			} else {
+				seen[url] = ind
+			}
+		}
+		require.Equal(t, 0, it.Buffered())
 	}
+	require.True(t, dups <= 3)
 }

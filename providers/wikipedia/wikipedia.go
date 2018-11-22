@@ -45,17 +45,19 @@ func (s *Service) Languages(ctx context.Context) ([]search.Language, error) {
 	return nil, nil // FIXME
 }
 
+func (s *Service) Regions(ctx context.Context) ([]search.Region, error) {
+	return nil, nil // FIXME
+}
+
 func (s *Service) Search(ctx context.Context, req search.Request) search.ResultIterator {
+	lang, _ := req.Lang.Base()
 	r := SearchReq{
-		Language: req.Lang.Country().String(),
+		Language: lang.String(),
 		Titles:   req.Query,
 		Prop: []Property{
 			PropExtracts,
 			PropPageImages,
 		},
-	}
-	if r.Language == "" {
-		r.Language = "en"
 	}
 	return &searchIter{s: s, cur: r}
 }
@@ -78,25 +80,43 @@ type searchIter struct {
 	err  error
 }
 
+func (it *searchIter) NextPage(ctx context.Context) bool {
+	if it.err != nil || it.s == nil {
+		return false
+	}
+	if len(it.page) != 0 {
+		// FIXME: query the next page
+		return false
+	}
+	resp, err := it.s.SearchRaw(ctx, it.cur)
+	if err != nil {
+		it.err = err
+		return false
+	}
+	it.page = resp.Query.Pages
+	it.i = -1
+	return len(it.page) > 0
+}
+
+func (it *searchIter) Buffered() int {
+	n := len(it.page) - (it.i + 1)
+	if n < 0 {
+		n = 0
+	}
+	return n
+}
+
 func (it *searchIter) Next(ctx context.Context) bool {
 	if it.err != nil || it.s == nil {
 		return false
 	}
-	if it.i+1 < len(it.page) {
-		it.i++
-		return true
-	}
-	if len(it.page) == 0 {
-		resp, err := it.s.SearchRaw(ctx, it.cur)
-		if err != nil {
-			it.err = err
+	if it.i+1 >= len(it.page) {
+		if !it.NextPage(ctx) {
 			return false
 		}
-		it.page = resp.Query.Pages
-		return len(it.page) > 0
 	}
-	// FIXME: query the next page
-	return false
+	it.i++
+	return true
 }
 
 func (it *searchIter) Close() error {

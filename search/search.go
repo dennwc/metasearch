@@ -15,18 +15,19 @@ type Searcher interface {
 type Service interface {
 	base.Provider
 	Languages(ctx context.Context) ([]Language, error)
+	Regions(ctx context.Context) ([]Region, error)
 
 	Searcher
 }
 
 type Request struct {
-	Query   string
-	Lang    LangCode
-	Country CountryCode
+	Query  string
+	Lang   LangCode
+	Region RegionCode
 }
 
 type ResultIterator interface {
-	base.Iterator
+	base.PagedIterator
 	Result() Result
 	Token() Token
 }
