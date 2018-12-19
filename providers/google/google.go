@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -167,10 +168,11 @@ type Result struct {
 }
 
 type SearchResp struct {
+	Total   uint
 	Results []Result
 }
 
-func (s *Service) SearchRaw(ctx context.Context, r SearchReq) (*SearchResp, error) {
+func (s *Service) searchPage(ctx context.Context, r SearchReq) (io.ReadCloser, string, error) {
 	if r.Country == "" {
 		r.Country = defaultCountry
 		// FIXME: derive country from the language
@@ -196,7 +198,7 @@ func (s *Service) SearchRaw(ctx context.Context, r SearchReq) (*SearchResp, erro
 	base := "https://" + hostname
 	req, err := s.GetRequest(base+searchPath, params)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	req.Header.Set("Accept-Language", r.Language+","+r.Language+"-"+r.Country)
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
@@ -205,11 +207,22 @@ func (s *Service) SearchRaw(ctx context.Context, r SearchReq) (*SearchResp, erro
 	})
 	resp, err := s.DoRaw(ctx, req)
 	if err != nil {
+		return nil, "", err
+	}
+	return resp.Body, base, nil
+}
+
+var reTotal = regexp.MustCompile(`([\d,]+)`)
+
+func (s *Service) SearchRaw(ctx context.Context, r SearchReq) (*SearchResp, error) {
+	body, base, err := s.searchPage(ctx, r)
+	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer body.Close()
+
 	// FIXME: handle "sorry" page
-	var rd io.Reader = resp.Body
+	var rd io.Reader = body
 	if false {
 		rd = io.TeeReader(rd, os.Stderr)
 	}
@@ -219,6 +232,16 @@ func (s *Service) SearchRaw(ctx context.Context, r SearchReq) (*SearchResp, erro
 	}
 	// FIXME: parse instant answers
 	out := &SearchResp{}
+	doc.Find(`#resultStats`).Each(func(_ int, sel *goquery.Selection) {
+		s := sel.Text() // About 1,100,000,000 results
+		s = reTotal.FindString(s)
+		if s == "" {
+			return
+		}
+		s = strings.Replace(s, ",", "", -1)
+		v, _ := strconv.ParseUint(s, 10, 64)
+		out.Total = uint(v)
+	})
 	doc.Find(`div.g`).Each(func(_ int, sel *goquery.Selection) {
 		h := sel.Find("h3").First()
 		link := h.Find(`a`).First().AttrOr("href", "")

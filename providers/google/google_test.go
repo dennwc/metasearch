@@ -20,6 +20,7 @@ func TestSearchRaw(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("%d %q", len(resp.Results), resp)
 	require.True(t, len(resp.Results) > 2)
+	require.True(t, resp.Total >= 1000000000, "%d", resp.Total)
 
 	r := resp.Results[0]
 	require.True(t, r.URL != "" && r.Title != "" && r.Content != "")
