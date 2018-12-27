@@ -50,3 +50,29 @@ func TestSearch(t *testing.T) {
 	require.NoError(t, it.Err())
 	require.True(t, len(got) == perPage*2)
 }
+
+func pageContains(it search.ResultIterator, text string) bool {
+	ctx := context.Background()
+	n := it.Buffered()
+	for i := 0; i < n && it.Next(ctx); i++ {
+		r := it.Result()
+		if strings.Contains(r.GetTitle(), text) || strings.Contains(r.GetDesc(), text) {
+			return true
+		}
+	}
+	return false
+}
+
+func TestSearchLang(t *testing.T) {
+	s := New()
+	ctx := context.Background()
+
+	it := s.Search(ctx, search.Request{
+		Query: "solar",
+		Lang:  search.MustParseLangCode("de-de"),
+	})
+	defer it.Close()
+
+	require.True(t, it.NextPage(ctx))
+	require.True(t, pageContains(it, "die Sonne"))
+}

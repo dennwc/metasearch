@@ -50,10 +50,14 @@ func (*Service) ID() string {
 
 func (s *Service) Search(ctx context.Context, req search.Request) search.ResultIterator {
 	r := SearchReq{
-		Query:    req.Query,
-		Language: req.Lang.String(),
-		Country:  req.Region.String(),
-		Offset:   0,
+		Query:  req.Query,
+		Offset: 0,
+	}
+	if req.Lang != (search.LangCode{}) {
+		r.Language = req.Lang.String()
+	}
+	if req.Region != (search.RegionCode{}) {
+		r.Country = req.Region.String()
 	}
 	return &searchIter{s: s, cur: r}
 }
@@ -173,10 +177,6 @@ type SearchResp struct {
 }
 
 func (s *Service) searchPage(ctx context.Context, r SearchReq) (io.ReadCloser, string, error) {
-	if r.Country == "" {
-		r.Country = defaultCountry
-		// FIXME: derive country from the language
-	}
 	if r.Language == "" {
 		r.Language = defaultLanguage
 	}
@@ -194,6 +194,10 @@ func (s *Service) searchPage(ctx context.Context, r SearchReq) (io.ReadCloser, s
 	params.Set("lr", "lang_"+r.Language)
 	params.Set("hl", r.Language)
 	params.Set("ei", "x")
+	if r.Country != "" {
+		// TODO: derive country from the language?
+		params.Set("cr", "country"+strings.ToUpper(r.Country))
+	}
 
 	base := "https://" + hostname
 	req, err := s.GetRequest(base+searchPath, params)
