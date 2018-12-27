@@ -2,10 +2,11 @@ package wikipedia
 
 import (
 	"context"
-	"github.com/dennwc/metasearch/search"
 	"net/url"
 	"testing"
 
+	"github.com/dennwc/metasearch/search"
+	"github.com/dennwc/metasearch/search/searchtest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -76,4 +77,9 @@ The solar wind, a stream of charged particles flowing outwards from the Sun, cre
 			},
 		},
 	}, got)
+}
+
+func TestWikipedia(t *testing.T) {
+	s := New()
+	searchtest.RunSearchTest(t, s)
 }

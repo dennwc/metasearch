@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/dennwc/metasearch/search"
+	"github.com/dennwc/metasearch/search/searchtest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -73,4 +74,9 @@ func TestSearch(t *testing.T) {
 		require.Equal(t, 0, it.Buffered())
 	}
 	require.True(t, dups <= 3)
+}
+
+func TestDuckDuckGo(t *testing.T) {
+	s := New()
+	searchtest.RunSearchTest(t, s)
 }
