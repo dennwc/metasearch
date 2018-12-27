@@ -53,4 +53,9 @@ type Result interface {
 	GetDesc() string
 }
 
+type ThumbnailResult interface {
+	Result
+	GetThumbnail() *Image
+}
+
 type Token []byte

@@ -23,6 +23,8 @@ func (r *LinkResult) GetDesc() string {
 	return r.Desc
 }
 
+var _ ThumbnailResult = (*ImageResult)(nil)
+
 type ImageResult struct {
 	Image
 	Title     string
@@ -39,6 +41,13 @@ func (r *ImageResult) GetDesc() string {
 	return r.Desc
 }
 
+func (r *ImageResult) GetThumbnail() *Image {
+	if r.Thumbnail != nil {
+		return r.Thumbnail
+	}
+	return &r.Image
+}
+
 type Image struct {
 	URL    url.URL
 	Width  int
@@ -50,14 +59,26 @@ func (r *Image) GetURL() *url.URL {
 	return &u
 }
 
+var _ ThumbnailResult = (*VideoResult)(nil)
+
 type VideoResult struct {
 	LinkResult
 	Thumbnail *Image
 }
+
+func (r *VideoResult) GetThumbnail() *Image {
+	return r.Thumbnail
+}
+
+var _ ThumbnailResult = (*EntityResult)(nil)
 
 type EntityResult struct {
 	LinkResult
 	Type     string
 	Category string
 	Image    *Image
+}
+
+func (r *EntityResult) GetThumbnail() *Image {
+	return r.Image
 }
