@@ -81,5 +81,5 @@ The solar wind, a stream of charged particles flowing outwards from the Sun, cre
 
 func TestWikipedia(t *testing.T) {
 	s := New()
-	searchtest.RunSearchTest(t, s)
+	searchtest.RunSearchTest(t, s, nil)
 }

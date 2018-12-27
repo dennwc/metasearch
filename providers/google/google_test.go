@@ -54,5 +54,7 @@ func TestSearch(t *testing.T) {
 
 func TestGoogle(t *testing.T) {
 	s := New()
-	searchtest.RunSearchTest(t, s)
+	searchtest.RunSearchTest(t, s, &searchtest.Config{
+		Safe: true,
+	})
 }

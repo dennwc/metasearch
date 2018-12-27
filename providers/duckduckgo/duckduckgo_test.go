@@ -78,5 +78,5 @@ func TestSearch(t *testing.T) {
 
 func TestDuckDuckGo(t *testing.T) {
 	s := New()
-	searchtest.RunSearchTest(t, s)
+	searchtest.RunSearchTest(t, s, nil)
 }

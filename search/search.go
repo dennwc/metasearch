@@ -24,6 +24,7 @@ type Request struct {
 	Query  string
 	Lang   LangCode
 	Region RegionCode
+	Safe   bool
 }
 
 type ResultIterator interface {

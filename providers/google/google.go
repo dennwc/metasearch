@@ -50,8 +50,9 @@ func (*Service) ID() string {
 
 func (s *Service) Search(ctx context.Context, req search.Request) search.ResultIterator {
 	r := SearchReq{
-		Query:  req.Query,
-		Offset: 0,
+		Query:      req.Query,
+		Offset:     0,
+		SafeSearch: req.Safe,
 	}
 	if req.Lang != (search.LangCode{}) {
 		r.Language = req.Lang.String()
@@ -159,10 +160,11 @@ type token struct {
 }
 
 type SearchReq struct {
-	Query    string `json:"q"`
-	Offset   int    `json:"off"`
-	Language string `json:"lang"`
-	Country  string `json:"country"`
+	Query      string `json:"q"`
+	Offset     int    `json:"off"`
+	Language   string `json:"lang"`
+	Country    string `json:"country"`
+	SafeSearch bool   `json:"safe"`
 }
 
 type Result struct {
@@ -197,6 +199,9 @@ func (s *Service) searchPage(ctx context.Context, r SearchReq) (io.ReadCloser, s
 	if r.Country != "" {
 		// TODO: derive country from the language?
 		params.Set("cr", "country"+strings.ToUpper(r.Country))
+	}
+	if r.SafeSearch {
+		params.Set("safe", "active")
 	}
 
 	base := "https://" + hostname
